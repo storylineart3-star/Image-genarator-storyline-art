@@ -1,33 +1,35 @@
 import logging
 import os
 import requests
+import urllib.parse
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# 🔐 SECURE ENV VARIABLES
+# 🔐 ENV VARIABLES
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN not set in environment variables")
+    raise ValueError("❌ BOT_TOKEN not set")
 
 users = set()
 
 logging.basicConfig(level=logging.INFO)
 
-# START
+# 🚀 START
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     users.add(user_id)
 
     await update.message.reply_text(
         "🔥 Welcome to Image Generator Bot!\n\n"
-        "Send:\n"
-        "/generate a king sitting on throne\n\n"
-        "I will create AI image for you."
+        "Use:\n"
+        "/generate your prompt\n\n"
+        "Example:\n"
+        "/generate cinematic king, ultra realistic, 4k"
     )
 
-# GENERATE IMAGE
+# 🎨 GENERATE IMAGE
 async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     users.add(user_id)
@@ -41,7 +43,11 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🎨 Generating image...")
 
     try:
-        url = f"https://image.pollinations.ai/prompt/{prompt}"
+        # ✅ Encode prompt properly
+        encoded_prompt = urllib.parse.quote(prompt)
+
+        # 🔥 High quality API URL
+        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&model=flux"
 
         response = requests.get(url, timeout=60)
 
@@ -52,16 +58,16 @@ async def generate(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         logging.error(e)
-        await update.message.reply_text("⚠️ Error occurred.")
+        await update.message.reply_text("⚠️ Error occurred while generating image.")
 
-# STATS (ADMIN ONLY)
+# 📊 STATS (ADMIN ONLY)
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
 
     await update.message.reply_text(f"👥 Total Users: {len(users)}")
 
-# BROADCAST (ADMIN ONLY)
+# 📢 BROADCAST (ADMIN ONLY)
 async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
@@ -83,7 +89,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"✅ Sent to {success} users")
 
-# MAIN
+# 🧠 MAIN
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
